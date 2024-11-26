@@ -1,0 +1,20 @@
+2024-10-31 13:40:28,585 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8000
+2024-10-31 13:40:28,585 - INFO - [33mPress CTRL+C to quit[0m
+2024-10-31 13:40:28,587 - INFO -  * Restarting with stat
+2024-10-31 13:40:28,725 - WARNING -  * Debugger is active!
+2024-10-31 13:40:28,731 - INFO -  * Debugger PIN: 508-979-908
+2024-10-31 13:41:31,358 - INFO - 127.0.0.1 - - [31/Oct/2024 13:41:31] "[33mGET / HTTP/1.1[0m" 404 -
+2024-10-31 13:41:31,572 - INFO - 127.0.0.1 - - [31/Oct/2024 13:41:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2024-10-31 13:43:31,300 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8000
+2024-10-31 13:43:31,300 - INFO - [33mPress CTRL+C to quit[0m
+2024-10-31 13:43:31,301 - INFO -  * Restarting with stat
+2024-10-31 13:43:31,483 - WARNING -  * Debugger is active!
+2024-10-31 13:43:31,485 - INFO -  * Debugger PIN: 508-979-908
+2024-10-31 13:45:20,316 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8000
+2024-10-31 13:45:20,316 - INFO - [33mPress CTRL+C to quit[0m
+2024-10-31 13:45:20,318 - INFO -  * Restarting with stat
+2024-10-31 13:45:20,455 - WARNING -  * Debugger is active!
+2024-10-31 13:45:20,456 - INFO -  * Debugger PIN: 508-979-908
