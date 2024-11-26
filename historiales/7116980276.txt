@@ -1,8 +1,0 @@
-[2024-11-04 12:08:16] Usuario: Hola
-[2024-11-04 12:08:16] Asistente: Hasta ahora, solo has enviado un mensaje "Hola". ¿En qué puedo ayudarte?
-[2024-11-04 12:08:39] Usuario: Como se llama el interventor?
-[2024-11-04 12:08:39] Asistente: Lo siento, pero no tengo información sobre un interventor específico. ¿Podrías proporcionar más contexto o detalles sobre quién es el interventor a quien te refieres? Estoy aquí para ayudarte con cualquier pregunta o inquietud que tengas.
-[2024-11-04 12:10:32] Usuario: Hola
-[2024-11-04 12:10:32] Asistente: ¡Hola de nuevo! Me alegra verte de nuevo. ¿Quieres hablar sobre algo en particular o solo charlar un rato? Estoy aquí para escucharte y ayudarte en lo que necesites.
-[2024-11-04 12:10:48] Usuario: Como se llama el interventor?
-[2024-11-04 12:10:48] Asistente: No tengo información específica sobre un interventor con ese nombre. ¿Podrías decirme más sobre quién es el interventor a quien te refieres? Es posible que sea una persona, un equipo o incluso una organización. Con más detalles, puedo tratar de ayudarte a encontrar la información que necesitas.

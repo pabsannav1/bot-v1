@@ -1,101 +1,159 @@
-import ollama
-import datetime
-from typing import Optional, Dict, Any
+#!/usr/bin/env python
+# pylint: disable=unused-argument
+import logging
+import os
+from datetime import datetime, time
+from collections import defaultdict
+from dotenv import load_dotenv
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, CallbackQueryHandler, filters
 
-def guardar_conversacion(archivo: str, rol: str, mensaje: str) -> None:
-    """Guarda una nueva interacción en el archivo de historial."""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(archivo, 'a', encoding='utf-8') as f:
-        f.write(f"[{timestamp}] {rol}: {mensaje}\n")
+# Load environment variables
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
-def leer_historial(archivo: str) -> str:
-    """Lee todo el historial de conversaciones."""
+if not TELEGRAM_TOKEN:
+    raise ValueError("Por favor, configure la variable TELEGRAM_TOKEN en el archivo .env")
+
+USERS_TO_NOTIFY = [
+    123456789,
+    987654321
+]
+
+# Callbacks para los botones
+CALLBACK_ADD = "add_info"
+CALLBACK_SUMMARY = "view_summary"
+
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
+messages_history = defaultdict(lambda: defaultdict(list))
+
+def get_keyboard():
+    """Create the inline keyboard markup"""
+    keyboard = [
+        [
+            InlineKeyboardButton("📝 Añadir información", callback_data=CALLBACK_ADD),
+            InlineKeyboardButton("📊 Ver resumen", callback_data=CALLBACK_SUMMARY)
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def log_message(user, message):
+    """Log message to history.txt file and store in messages history"""
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    timestamp = datetime.now().strftime("%H:%M")
+    
+    with open("history.txt", "a", encoding="utf-8") as f:
+        f.write(f"[{current_date} {timestamp}] Usuario: {user.full_name} (ID: {user.id}) - Mensaje: {message}\n")
+    
+    messages_history[current_date][user.full_name].append({
+        'time': timestamp,
+        'message': message
+    })
+
+def generate_daily_summary(date=None):
+    """Generate a formatted summary of messages for a specific date"""
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
+    
+    if date not in messages_history or not messages_history[date]:
+        return f"No hay mensajes para mostrar del día {date}"
+    
+    summary = f"📝 Resumen de mensajes del {date}:\n\n"
+    
+    for user, messages in sorted(messages_history[date].items()):
+        summary += f"👤 {user}:\n"
+        for msg in sorted(messages, key=lambda x: x['time']):
+            summary += f"   [{msg['time']}] {msg['message']}\n"
+        summary += "\n"
+    
+    return summary
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /start is issued."""
+    user = update.effective_user
+    await update.message.reply_html(
+        rf"Hi {user.mention_html()}! Usa los botones para interactuar conmigo:",
+        reply_markup=get_keyboard()
+    )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    await update.message.reply_text(
+        "Puedes usar los botones o estos comandos:\n"
+        "/start - Iniciar bot y mostrar botones\n"
+        "/help - Mostrar ayuda\n"
+        "/resumen YYYY-MM-DD - Ver resumen de un día específico",
+        reply_markup=get_keyboard()
+    )
+
+async def get_summary(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handler for /resumen command"""
     try:
-        with open(archivo, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        return ""
+        if context.args:
+            date = context.args[0]
+            datetime.strptime(date, "%Y-%m-%d")
+        else:
+            date = datetime.now().strftime("%Y-%m-%d")
+            
+        summary = generate_daily_summary(date)
+        await update.message.reply_text(summary, reply_markup=get_keyboard())
+    except ValueError:
+        await update.message.reply_text("Formato de fecha incorrecto. Usa YYYY-MM-DD")
 
-def gestionar_conversacion(prompt: str, archivo_historial: str = "conversacion_historial.txt", modelo: str = "llama3.2") -> str:
-    """
-    Gestiona una conversación con el LLM, guardando el historial y usándolo como contexto.
-    
-    Args:
-        prompt: El mensaje del usuario
-        archivo_historial: Ruta al archivo donde se guarda el historial
-        modelo: El modelo de Ollama a usar
-    Returns:
-        La respuesta del modelo
-    """
-    # Leer el historial existente
-    historial = leer_historial(archivo_historial)
-    
-    # Construir el contexto completo
-    contexto_completo = f"""
-    Historial de la conversación:
-    {historial}
-    
-    Usuario actual: {prompt}
-    
-    Por favor, responde al último mensaje del usuario teniendo en cuenta el contexto anterior.
-    """
-    
-    try:
-        # Obtener respuesta del modelo usando el contexto
-        respuesta = ollama.chat(model=modelo, messages=[
-            {
-                'role': 'user',
-                'content': contexto_completo
-            }
-        ])
-        
-        contenido_respuesta = respuesta['message']['content']
-        
-        # Guardar la nueva interacción
-        guardar_conversacion(archivo_historial, "Usuario", prompt)
-        guardar_conversacion(archivo_historial, "Asistente", contenido_respuesta)
-        
-        return contenido_respuesta
-    
-    except Exception as e:
-        error_msg = f"Error al interactuar con el modelo: {str(e)}"
-        print(error_msg)
-        return error_msg
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle incoming messages"""
+    user = update.effective_user
+    message = update.message.text
+    log_message(user, message)
 
-def main():
-    """Función principal que ejecuta el bucle de conversación."""
-    print("¡Bienvenido al chat con LLama 3.2!")
-    print("Escribe 'salir' para terminar la conversación")
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle button presses"""
+    query = update.callback_query
+    await query.answer()  # Responde al callback query
+
+    if query.data == CALLBACK_ADD:
+        await query.message.reply_text("¿Qué has hecho hoy?", reply_markup=get_keyboard())
+    elif query.data == CALLBACK_SUMMARY:
+        summary = generate_daily_summary()
+        await query.message.reply_text(summary, reply_markup=get_keyboard())
+
+async def send_daily_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send daily summary to specified users"""
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    summary = generate_daily_summary(current_date)
     
-    # Verificar que podemos conectar con el modelo
-    try:
-        ollama.list()
-        print("Conexión con Ollama establecida correctamente")
-    except Exception as e:
-        print(f"Error: No se puede conectar con Ollama. Error: {e}")
-        return
-    
-    while True:
+    for user_id in USERS_TO_NOTIFY:
         try:
-            entrada_usuario = input("\nTú: ").strip()
-            if entrada_usuario.lower() in ['salir', 'exit', 'quit']:
-                print("¡Hasta luego!")
-                break
-            
-            if not entrada_usuario:
-                print("Por favor, escribe un mensaje.")
-                continue
-                
-            print("\nProcesando...")
-            respuesta = gestionar_conversacion(entrada_usuario)
-            print(f"\nAsistente: {respuesta}")
-            
-        except KeyboardInterrupt:
-            print("\n\nSesión terminada por el usuario.")
-            break
+            await context.bot.send_message(
+                chat_id=user_id, 
+                text=summary,
+                parse_mode='HTML',
+                reply_markup=get_keyboard()
+            )
+            logger.info(f"Resumen diario enviado al usuario {user_id}")
         except Exception as e:
-            print(f"\nError inesperado: {e}")
-            print("Intenta de nuevo o escribe 'salir' para terminar.")
+            logger.error(f"Error enviando resumen al usuario {user_id}: {e}")
+
+def main() -> None:
+    """Start the bot."""
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    job_queue = application.job_queue
+    job_queue.run_daily(send_daily_summary, time=time(hour=21, minute=0))
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("resumen", get_summary))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
